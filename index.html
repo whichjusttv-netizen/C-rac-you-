@@ -1,67 +1,104 @@
 <!DOCTYPE html>
-<html>
+<html lang="hi">
 <head>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>TITAN-FIX</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>TITAN 5G READY</title>
     <style>
-        /* सफ़ेद स्क्रीन को रोकने के लिए पक्का इंतज़ाम */
-        body { margin: 0; overflow: hidden; background: #000; color: #0f0; font-family: monospace; }
-        canvas { display: block; background: #000; }
-        #ui { position: absolute; top: 10px; width: 100%; text-align: center; z-index: 10; }
-        .btn { position: absolute; bottom: 40px; right: 30px; width: 80px; height: 80px; background: red; border-radius: 50%; display: flex; justify-content: center; align-items: center; color: white; font-weight: bold; z-index: 20; }
+        /* सफ़ेद स्क्रीन को खत्म करने के लिए ब्लैकआउट */
+        body { margin: 0; overflow: hidden; background: #000; color: #0f0; font-family: 'Courier New', Courier, monospace; }
+        #system-log {
+            position: absolute; top: 10px; left: 10px; 
+            background: rgba(0,20,0,0.9); padding: 10px;
+            border: 1px solid #0f0; font-size: 12px; z-index: 1000;
+            max-width: 250px; border-radius: 5px;
+        }
+        canvas { display: block; }
+        /* Mobile Controls */
+        .controls {
+            position: absolute; bottom: 20px; width: 100%;
+            display: flex; justify-content: space-around; pointer-events: none; z-index: 500;
+        }
+        .btn {
+            width: 70px; height: 70px; background: rgba(0,255,0,0.1);
+            border: 2px solid #0f0; border-radius: 50%; pointer-events: auto;
+            display: flex; justify-content: center; align-items: center; color: #0f0; font-weight: bold;
+        }
+        .btn:active { background: #0f0; color: #000; }
     </style>
 </head>
 <body>
 
-    <div id="ui">
-        <div id="st" style="border: 2px solid #0f0; display: inline-block; padding: 5px 15px;">
-            SYSTEM: ONLINE | SERVER: <span id="srv">OFFLINE ❌</span>
-        </div>
+    <div id="system-log">
+        [TITAN OS V5.0]<br>
+        STATUS: <span id="status" style="color:red;">SEARCHING SERVER...</span><br>
+        LINK: <span id="link-status">RETRYING...</span>
     </div>
 
-    <div class="btn" id="f">FIRE</div>
+    <div class="controls">
+        <div style="display:grid; grid-template-columns: repeat(3, 75px); gap: 10px;">
+            <div></div><div class="btn" id="btn-u">↑</div><div></div>
+            <div class="btn" id="btn-l">←</div><div class="btn" id="btn-d">↓</div><div class="btn" id="btn-r">→</div>
+        </div>
+        <div class="btn" style="width:90px; height:90px; border-color:red; color:red;" id="btn-f">FIRE</div>
+    </div>
 
-    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 
     <script>
-        const srv = document.getElementById('srv');
+        const statusText = document.getElementById('status');
+        const linkText = document.getElementById('link-status');
         let socket;
+        let isConnected = false;
 
-        // 1. कनेक्शन का नया रास्ता (Bypass Logic)
-        function connect() {
-            // हम 'localhost' की जगह मोबाइल का इंटरनल IP इस्तेमाल करेंगे
+        // 1. STUBBORN CONNECTION LOGIC (कभी न टूटने वाला जुड़ाव)
+        function initTitanCore() {
+            // हम सीधा Localhost का इस्तेमाल कर रहे हैं
             socket = new WebSocket('ws://127.0.0.1:5555');
 
             socket.onopen = () => {
-                srv.innerText = "CONNECTED ✅";
-                srv.style.color = "#0f0";
+                isConnected = true;
+                statusText.innerText = "SYSTEM CONNECTED ✅";
+                statusText.style.color = "#0f0";
+                linkText.innerText = "STABLE 5G LINK";
+                console.log("Titan Heartbeat Started...");
             };
 
             socket.onmessage = (e) => {
-                if(e.data.includes("CONNECTED")) {
-                    srv.innerText = "CONNECTED ✅";
+                // सर्वर से डेटा मिलने पर यहाँ हलचल होगी
+                if(e.data === "SYSTEM_CONNECTED_COMPLETE") {
+                    console.log("Handshake Success!");
                 }
             };
 
             socket.onclose = () => {
-                srv.innerText = "OFFLINE ❌";
-                setTimeout(connect, 2000); // 2 सेकंड में खुद जुड़ेगा
+                isConnected = false;
+                statusText.innerText = "DISCONNECTED ❌";
+                statusText.style.color = "red";
+                linkText.innerText = "RECONNECTING IN 1s...";
+                // यह लाइन जादू है: जैसे ही कटेगा, 1 सेकंड में फिर कोशिश करेगा
+                setTimeout(initTitanCore, 1000); 
+            };
+
+            socket.onerror = (err) => {
+                console.log("Connection Blocked by Security. Rerouting...");
             };
         }
 
-        // 2. 3D WORLD (Safe Mode)
+        // 2. 5G OPTIMIZED 3D WORLD (Zero White Screen)
         const scene = new THREE.Scene();
-        scene.background = new THREE.Color(0x000000); // काला ताकि सफ़ेद न दिखे
-        const camera = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHeight, 0.1, 1000);
+        scene.background = new THREE.Color(0x000000); 
+
+        const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
         const renderer = new THREE.WebGLRenderer({ antialias: true });
         renderer.setSize(window.innerWidth, window.innerHeight);
         document.body.appendChild(renderer.domElement);
 
-        // Ground Grid (हरा जाल)
-        const grid = new THREE.GridHelper(100, 20, 0x00ff00, 0x004400);
+        // Green Grid (Your Signature Style)
+        const grid = new THREE.GridHelper(200, 40, 0x00ff00, 0x002200);
         scene.add(grid);
 
-        // 3D Objects
+        // Player / Target
         const geometry = new THREE.BoxGeometry(2, 2, 2);
         const material = new THREE.MeshBasicMaterial({ color: 0x00ff00, wireframe: true });
         const cube = new THREE.Mesh(geometry, material);
@@ -71,14 +108,29 @@
         camera.position.set(0, 5, 10);
         camera.lookAt(0, 0, 0);
 
-        function animate() {
-            requestAnimationFrame(animate);
-            cube.rotation.y += 0.01;
+        // 3. SMOOTH CONTROLS
+        let move = { f:0, b:0, l:0, r:0 };
+        const map = (id, k) => {
+            const el = document.getElementById(id);
+            el.ontouchstart = () => move[k] = 1;
+            el.ontouchend = () => move[k] = 0;
+        };
+        map('btn-u','f'); map('btn-d','b'); map('btn-l','l'); map('btn-r','r');
+
+        function gameLoop() {
+            requestAnimationFrame(gameLoop);
+            if(isConnected) {
+                if(move.f) camera.position.z -= 0.5;
+                if(move.b) camera.position.z += 0.5;
+                if(move.l) camera.position.x -= 0.5;
+                if(move.r) camera.position.x += 0.5;
+                cube.rotation.y += 0.05; // Animation check
+            }
             renderer.render(scene, camera);
         }
 
-        animate();
-        connect();
+        gameLoop();
+        initTitanCore();
     </script>
 </body>
 </html>
