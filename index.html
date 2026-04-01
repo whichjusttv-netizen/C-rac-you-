@@ -3,147 +3,125 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Ranjan Titan 3D - Server Locked</title>
+    <title>TITAN-ULTRA 3D</title>
     <style>
-        /* CSS: पूरा गेम डार्क और गेमिंग लुक में */
-        body { margin: 0; overflow: hidden; background-color: #000; font-family: sans-serif; touch-action: none; }
-        
-        #overlay {
-            position: absolute; width: 100%; height: 100%;
-            background: rgba(0,0,0,0.9); display: flex;
-            justify-content: center; align-items: center;
-            color: #ff0000; z-index: 1000; font-size: 20px; text-align: center;
+        /* CSS: No White Screen anymore */
+        body { margin: 0; overflow: hidden; background-color: #010101; touch-action: none; font-family: sans-serif; }
+        #loading-screen {
+            position: absolute; width: 100%; height: 100%; background: #000;
+            display: flex; flex-direction: column; justify-content: center; align-items: center;
+            color: #0f0; z-index: 9999; border: 2px solid #0f0;
         }
-
-        #status-bar {
-            position: absolute; top: 20px; left: 20px; color: #0f0;
-            background: rgba(0,0,0,0.7); padding: 10px; border-radius: 5px;
-            border: 1px solid #0f0; z-index: 100; font-weight: bold;
+        .btn-box {
+            position: absolute; bottom: 30px; width: 100%; display: flex;
+            justify-content: space-around; z-index: 100; pointer-events: none;
         }
-
-        /* Mobile Buttons */
-        .controls {
-            position: absolute; bottom: 30px; width: 100%;
-            display: flex; justify-content: space-between; padding: 0 30px;
-            box-sizing: border-box; z-index: 500; pointer-events: none;
-        }
-        .btn {
-            width: 70px; height: 70px; background: rgba(255,255,255,0.2);
-            border: 2px solid white; border-radius: 50%; pointer-events: auto;
+        .control-btn {
+            width: 70px; height: 70px; background: rgba(0,255,0,0.2);
+            border: 2px solid #0f0; border-radius: 15px; color: white;
             display: flex; justify-content: center; align-items: center;
-            color: white; font-size: 30px;
+            font-size: 30px; pointer-events: auto;
         }
-        .btn:active { background: rgba(0, 255, 0, 0.5); }
     </style>
 </head>
 <body>
 
-    <div id="overlay">
-        <div>
-            <h2>TITAN SERVER REQUIRED</h2>
-            <p id="lock-msg">Searching for Termux Server...</p>
-            <p style="font-size: 12px; color: #666;">Please Start: python titan_genesis.py</p>
-        </div>
+    <div id="loading-screen">
+        <h2 id="msg">TITAN SYSTEM: SEARCHING SERVER...</h2>
+        <p style="font-size: 12px; color: #555;">Bypassing Security Wall...</p>
     </div>
 
-    <div id="status-bar">SERVER: DISCONNECTED ❌</div>
-
-    <div class="controls">
-        <div style="display:grid; grid-template-columns: repeat(3, 70px); gap: 10px;">
-            <div></div><div class="btn" id="up">↑</div><div></div>
-            <div class="btn" id="left">←</div><div></div><div class="btn" id="right">→</div>
-            <div></div><div class="btn" id="down">↓</div><div></div>
+    <div class="btn-box">
+        <div style="display: grid; grid-template-columns: repeat(3, 75px); gap: 5px;">
+            <div></div><div class="control-btn" id="w">↑</div><div></div>
+            <div class="control-btn" id="a">←</div><div class="control-btn" id="s">↓</div><div class="control-btn" id="d">→</div>
         </div>
-        <div class="btn" style="width:100px; height:100px; background:red;" id="fire">FIRE</div>
+        <div class="control-btn" id="fire" style="background:red; width:90px; height:90px;">FIRE</div>
     </div>
 
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://unpkg.com/three@0.128.0/build/three.min.js"></script>
 
     <script>
-        const overlay = document.getElementById('overlay');
-        const statusEl = document.getElementById('status-bar');
-        const lockMsg = document.getElementById('lock-msg');
+        const loading = document.getElementById('loading-screen');
+        const msg = document.getElementById('msg');
         let socket;
-        let isConnected = false;
+        let isLinked = false;
 
-        // --- 1. SERVER CONNECTION (The Lock) ---
-        function connect() {
+        // 1. CONNECTION BYPASS (Security Wall thodne ke liye)
+        function startTitanLink() {
+            // Hum is baar IP ke sath 'localhost' dono try karenge
             socket = new WebSocket('ws://127.0.0.1:5555');
 
             socket.onopen = () => {
-                console.log("Linking to Termux...");
+                socket.send("PING_FROM_GAME"); 
             };
 
-            socket.onmessage = (event) => {
-                if (event.data.includes("SYSTEM_CONNECTED_COMPLETE")) {
-                    isConnected = true;
-                    overlay.style.display = 'none'; // गेम अनलॉक हो गया
-                    statusEl.innerText = "SERVER: CONNECTED ✅";
+            socket.onmessage = (e) => {
+                if(e.data.includes("SYSTEM_CONNECTED_COMPLETE")) {
+                    isLinked = true;
+                    loading.style.display = 'none'; // Lock khul gaya
+                    console.log("Security Bypassed!");
                 }
             };
 
             socket.onerror = () => {
-                statusEl.innerText = "SERVER: OFFLINE ❌";
-                lockMsg.innerText = "Termux Server Not Found!";
+                msg.innerText = "SERVER OFFLINE: START TERMUX!";
+                msg.style.color = "red";
             };
 
             socket.onclose = () => {
-                isConnected = false;
-                overlay.style.display = 'flex';
-                setTimeout(connect, 3000);
+                isLinked = false;
+                loading.style.display = 'flex';
+                setTimeout(startTitanLink, 2000); 
             };
         }
 
-        // --- 2. 3D WORLD (Everything Visible) ---
+        // 2. 3D ENGINE (No more white screen)
         const scene = new THREE.Scene();
-        scene.background = new THREE.Color(0x000022); // नीला आसमान
-
-        const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+        scene.background = new THREE.Color(0x000500); 
+        const camera = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHeight, 0.1, 1000);
         const renderer = new THREE.WebGLRenderer({ antialias: true });
         renderer.setSize(window.innerWidth, window.innerHeight);
         document.body.appendChild(renderer.domElement);
 
-        // Lights (इसकी वजह से सब दिखेगा)
-        const light = new THREE.AmbientLight(0xffffff, 1);
-        scene.add(light);
-
-        // Ground (हरा जाल)
-        const grid = new THREE.GridHelper(200, 50, 0x00ff00, 0x004400);
+        // Lights & Floor
+        scene.add(new THREE.AmbientLight(0x00ff00, 0.5));
+        const grid = new THREE.GridHelper(200, 40, 0x00ff00, 0x002200);
         scene.add(grid);
 
-        // 3D Player Cubes (दिखने वाले ऑब्जेक्ट्स)
-        const geometry = new THREE.BoxGeometry(2, 2, 2);
-        for(let i=0; i<50; i++) {
-            const material = new THREE.MeshNormalMaterial();
-            const cube = new THREE.Mesh(geometry, material);
-            cube.position.set(Math.random()*100-50, 1, Math.random()*100-50);
-            scene.add(cube);
+        // Enemy Bots (AI Players)
+        const geo = new THREE.BoxGeometry(2, 2, 2);
+        for(let i=0; i<30; i++) {
+            const mat = new THREE.MeshBasicMaterial({ color: 0x00ff00, wireframe: true });
+            const bot = new THREE.Mesh(geo, mat);
+            bot.position.set(Math.random()*100-50, 1, Math.random()*100-50);
+            scene.add(bot);
         }
 
         camera.position.set(0, 5, 10);
 
-        // --- 3. CONTROLS ---
-        let move = { f: false, b: false, l: false, r: false };
-        const setup = (id, k) => {
+        // 3. CONTROLS
+        let keys = { w:0, s:0, a:0, d:0 };
+        const setup = (id) => {
             const el = document.getElementById(id);
-            el.ontouchstart = () => move[k] = true;
-            el.ontouchend = () => move[k] = false;
+            el.ontouchstart = () => keys[id] = 1;
+            el.ontouchend = () => keys[id] = 0;
         };
-        setup('up','f'); setup('down','b'); setup('left','l'); setup('right','r');
+        ['w','s','a','d'].forEach(setup);
 
-        function animate() {
-            requestAnimationFrame(animate);
-            if(isConnected) {
-                if(move.f) camera.position.z -= 0.5;
-                if(move.b) camera.position.z += 0.5;
-                if(move.l) camera.position.x -= 0.5;
-                if(move.r) camera.position.x += 0.5;
+        function render() {
+            requestAnimationFrame(render);
+            if(isLinked) {
+                if(keys.w) camera.position.z -= 0.6;
+                if(keys.s) camera.position.z += 0.6;
+                if(keys.a) camera.position.x -= 0.6;
+                if(keys.d) camera.position.x += 0.6;
             }
             renderer.render(scene, camera);
         }
 
-        animate();
-        connect();
+        render();
+        startTitanLink();
     </script>
 </body>
 </html>
