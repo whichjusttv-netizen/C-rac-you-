@@ -1,89 +1,77 @@
 <!DOCTYPE html>
-<html>
+<html lang="hi">
 <head>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>TITAN MESH SYSTEM</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TITAN LIVE TRACKER</title>
     <style>
-        body { margin: 0; background: #000; color: #0f0; font-family: monospace; overflow: hidden; }
-        #mesh-status {
-            position: absolute; top: 0; width: 100%; height: 100%;
-            background: radial-gradient(circle, #020, #000);
+        body { margin: 0; background: #000; color: #0f0; font-family: 'Courier New', monospace; overflow: hidden; }
+        #lock-screen {
+            position: absolute; width: 100%; height: 100%; background: #000;
             display: flex; flex-direction: column; justify-content: center; align-items: center;
-            z-index: 1000; transition: 0.5s;
+            z-index: 9999; border: 2px solid #0f0; box-sizing: border-box;
         }
-        .pulse-ring {
-            width: 100px; height: 100px; border: 2px solid #0f0;
-            border-radius: 50%; animation: mesh-pulse 1.5s infinite;
-        }
-        @keyframes mesh-pulse {
-            0% { transform: scale(0.5); opacity: 1; }
-            100% { transform: scale(2); opacity: 0; }
-        }
-        #hud { position: absolute; bottom: 20px; width: 100%; text-align: center; color: #0f0; z-index: 100; }
+        #live-dashboard { display: none; padding: 20px; }
+        .stat-box { border: 1px solid #0f0; padding: 15px; margin-bottom: 10px; background: rgba(0,255,0,0.1); }
+        .scanning-line { width: 200px; height: 2px; background: #0f0; box-shadow: 0 0 15px #0f0; animation: scan 2s infinite; }
+        @keyframes scan { 0%, 100% { transform: translateY(-20px); } 50% { transform: translateY(20px); } }
     </style>
 </head>
 <body>
 
-    <div id="mesh-status">
-        <div class="pulse-ring"></div>
-        <h2 id="log">MESH SYNCING...</h2>
-        <p style="font-size: 10px;">CONNECTING VIA INTERNAL WIFI BRIDGE</p>
+    <div id="lock-screen">
+        <div class="scanning-line"></div>
+        <h2 style="margin-top:30px;">TRACKING PASSWORD...</h2>
+        <p id="track-msg">Searching for System Key: TITAN_777</p>
     </div>
 
-    <div id="hud">CORE SYNC: <span id="sync-val" style="color:red;">WAITING</span></div>
-
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <div id="live-dashboard">
+        <h1 style="border-bottom: 2px solid #0f0;">TITAN LIVE DATA</h1>
+        <div class="stat-box">
+            <div>STATUS: <span id="status">CONNECTING...</span></div>
+            <div style="font-size: 12px; margin-top:5px;">KEY MATCHED: <span id="key-found" style="color:white;">NONE</span></div>
+        </div>
+        <div class="stat-box">
+            <div>LIVE SIGNAL: <span id="signal-str">0%</span></div>
+            <div id="graph" style="height:20px; background: #030; margin-top:10px; width:0%; transition: 0.5s;"></div>
+        </div>
+        <button onclick="location.reload()" style="background:#0f0; border:none; padding:10px; width:100%; font-weight:bold;">RE-SCAN SYSTEM</button>
+    </div>
 
     <script>
-        const meshUI = document.getElementById('mesh-status');
-        const syncVal = document.getElementById('sync-val');
-        let meshLocked = false;
+        const lockScreen = document.getElementById('lock-screen');
+        const dashboard = document.getElementById('live-dashboard');
+        const statusText = document.getElementById('status');
+        const keyText = document.getElementById('key-found');
+        const signalBar = document.getElementById('graph');
 
-        // --- MESH CONNECTIVITY (System-Server Merge) ---
-        function startMeshSync() {
-            // Localhost ko Internal IP ki tarah use karenge
+        function startTracking() {
+            // WebSocket local server se judega
             let ws = new WebSocket('ws://127.0.0.1:5555');
 
-            ws.onmessage = (e) => {
-                if(e.data.includes("TITAN_MESH_SYNC")) {
-                    meshLocked = true;
-                    meshUI.style.opacity = '0';
-                    setTimeout(() => meshUI.style.display = 'none', 500);
-                    syncVal.innerText = "LOCKED ✅";
-                    syncVal.style.color = "#0f0";
+            ws.onmessage = (event) => {
+                const data = event.data;
+                // Password Matching Logic
+                if(data.includes("TITAN_777")) {
+                    lockScreen.style.display = 'none';
+                    dashboard.style.display = 'block';
+                    
+                    // Live Jankari Update
+                    statusText.innerText = "ACTIVE & LIVE ✅";
+                    keyText.innerText = "TITAN_777 (MATCHED)";
+                    signalBar.style.width = "95%";
+                    document.getElementById('signal-str').innerText = "95% (EXCELLENT)";
                 }
             };
 
             ws.onclose = () => {
-                meshLocked = false;
-                meshUI.style.display = 'flex';
-                meshUI.style.opacity = '1';
-                setTimeout(startMeshSync, 300);
+                lockScreen.style.display = 'flex';
+                dashboard.style.display = 'none';
+                setTimeout(startTracking, 500); // Agar connection kata to turant wapas judo
             };
         }
 
-        // --- RACING SYSTEM ENGINE ---
-        const scene = new THREE.Scene();
-        const camera = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHeight, 0.1, 1000);
-        const renderer = new THREE.WebGLRenderer({ antialias: true });
-        renderer.setSize(window.innerWidth, window.innerHeight);
-        document.body.appendChild(renderer.domElement);
-
-        const grid = new THREE.GridHelper(300, 60, 0x00ff00, 0x003300);
-        scene.add(grid);
-        camera.position.set(0, 5, 12);
-
-        function renderLoop() {
-            requestAnimationFrame(renderLoop);
-            if(meshLocked) {
-                grid.position.z += 0.4;
-                if(grid.position.z > 10) grid.position.z = 0;
-            }
-            renderer.render(scene, camera);
-        }
-
-        renderLoop();
-        startMeshSync();
+        startTracking();
     </script>
 </body>
 </html>
