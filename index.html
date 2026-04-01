@@ -2,82 +2,88 @@
 <html>
 <head>
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>TITAN MAGNET BOT</title>
+    <title>TITAN MESH SYSTEM</title>
     <style>
-        body { margin: 0; background: #000; overflow: hidden; font-family: monospace; }
-        #radar {
-            position: absolute; width: 100%; height: 100%;
-            display: flex; justify-content: center; align-items: center;
-            background: radial-gradient(circle, #001, #000); z-index: 1000;
+        body { margin: 0; background: #000; color: #0f0; font-family: monospace; overflow: hidden; }
+        #mesh-status {
+            position: absolute; top: 0; width: 100%; height: 100%;
+            background: radial-gradient(circle, #020, #000);
+            display: flex; flex-direction: column; justify-content: center; align-items: center;
+            z-index: 1000; transition: 0.5s;
         }
-        .circle {
-            position: absolute; border: 2px solid #0f0; border-radius: 50%;
-            animation: pulse 2s infinite; opacity: 0;
+        .pulse-ring {
+            width: 100px; height: 100px; border: 2px solid #0f0;
+            border-radius: 50%; animation: mesh-pulse 1.5s infinite;
         }
-        @keyframes pulse {
-            0% { width: 0; height: 0; opacity: 1; }
-            100% { width: 500px; height: 500px; opacity: 0; }
+        @keyframes mesh-pulse {
+            0% { transform: scale(0.5); opacity: 1; }
+            100% { transform: scale(2); opacity: 0; }
         }
+        #hud { position: absolute; bottom: 20px; width: 100%; text-align: center; color: #0f0; z-index: 100; }
     </style>
 </head>
 <body>
 
-    <div id="radar">
-        <div class="circle"></div>
-        <div class="circle" style="animation-delay: 0.5s"></div>
-        <h2 id="log" style="color: #0f0; text-shadow: 0 0 10px #0f0;">MAGNET BOT: SCANNING...</h2>
+    <div id="mesh-status">
+        <div class="pulse-ring"></div>
+        <h2 id="log">MESH SYNCING...</h2>
+        <p style="font-size: 10px;">CONNECTING VIA INTERNAL WIFI BRIDGE</p>
     </div>
+
+    <div id="hud">CORE SYNC: <span id="sync-val" style="color:red;">WAITING</span></div>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 
     <script>
-        const log = document.getElementById('log');
-        const radar = document.getElementById('radar');
-        let captured = false;
+        const meshUI = document.getElementById('mesh-status');
+        const syncVal = document.getElementById('sync-val');
+        let meshLocked = false;
 
-        // MAGNET BOT CAPTURE LOGIC
-        function startCapture() {
-            // ये बॉट अब दो अलग रास्तों से सिग्नल पकड़ने की कोशिश करेगा
-            let ports = [5555, 8080];
-            
-            ports.forEach(port => {
-                let ws = new WebSocket('ws://127.0.0.1:' + port);
+        // --- MESH CONNECTIVITY (System-Server Merge) ---
+        function startMeshSync() {
+            // Localhost ko Internal IP ki tarah use karenge
+            let ws = new WebSocket('ws://127.0.0.1:5555');
 
-                ws.onmessage = (e) => {
-                    if(e.data.includes("MAGNET_CAPTURED") && !captured) {
-                        captured = true;
-                        radar.style.display = 'none';
-                        alert("SIGNAL CAPTURED! SYSTEM LOCKED ✅");
-                    }
-                };
+            ws.onmessage = (e) => {
+                if(e.data.includes("TITAN_MESH_SYNC")) {
+                    meshLocked = true;
+                    meshUI.style.opacity = '0';
+                    setTimeout(() => meshUI.style.display = 'none', 500);
+                    syncVal.innerText = "LOCKED ✅";
+                    syncVal.style.color = "#0f0";
+                }
+            };
 
-                ws.onclose = () => { if(!captured) setTimeout(startCapture, 200); };
-            });
+            ws.onclose = () => {
+                meshLocked = false;
+                meshUI.style.display = 'flex';
+                meshUI.style.opacity = '1';
+                setTimeout(startMeshSync, 300);
+            };
         }
 
-        // 3D Engine Setup
+        // --- RACING SYSTEM ENGINE ---
         const scene = new THREE.Scene();
         const camera = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHeight, 0.1, 1000);
-        const renderer = new THREE.WebGLRenderer();
+        const renderer = new THREE.WebGLRenderer({ antialias: true });
         renderer.setSize(window.innerWidth, window.innerHeight);
         document.body.appendChild(renderer.domElement);
 
-        const grid = new THREE.GridHelper(200, 40, 0x00ff00, 0x002200);
+        const grid = new THREE.GridHelper(300, 60, 0x00ff00, 0x003300);
         scene.add(grid);
-        camera.position.set(0, 5, 10);
+        camera.position.set(0, 5, 12);
 
-        function animate() {
-            requestAnimationFrame(animate);
-            if(captured) {
-                grid.rotation.y += 0.02;
-                grid.position.z += 0.3;
-                if(grid.position.z > 5) grid.position.z = 0;
+        function renderLoop() {
+            requestAnimationFrame(renderLoop);
+            if(meshLocked) {
+                grid.position.z += 0.4;
+                if(grid.position.z > 10) grid.position.z = 0;
             }
             renderer.render(scene, camera);
         }
 
-        animate();
-        startCapture();
+        renderLoop();
+        startMeshSync();
     </script>
 </body>
 </html>
