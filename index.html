@@ -2,75 +2,63 @@
 <html>
 <head>
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>TITAN PASSWORD SYSTEM</title>
+    <title>TITAN MAGNET BOT</title>
     <style>
-        body { margin: 0; background: #000; color: #0f0; font-family: monospace; overflow: hidden; }
-        #scanner {
+        body { margin: 0; background: #000; overflow: hidden; font-family: monospace; }
+        #radar {
             position: absolute; width: 100%; height: 100%;
-            display: flex; flex-direction: column; justify-content: center; align-items: center;
-            background: radial-gradient(circle, #001100, #000); z-index: 1000;
+            display: flex; justify-content: center; align-items: center;
+            background: radial-gradient(circle, #001, #000); z-index: 1000;
         }
-        .loading-bar { width: 200px; height: 5px; border: 1px solid #0f0; margin-top: 10px; position: relative; }
-        #progress { width: 0%; height: 100%; background: #0f0; transition: 0.1s; }
-        #hud { position: absolute; top: 10px; width: 100%; text-align: center; z-index: 100; font-weight: bold; }
+        .circle {
+            position: absolute; border: 2px solid #0f0; border-radius: 50%;
+            animation: pulse 2s infinite; opacity: 0;
+        }
+        @keyframes pulse {
+            0% { width: 0; height: 0; opacity: 1; }
+            100% { width: 500px; height: 500px; opacity: 0; }
+        }
     </style>
 </head>
 <body>
 
-    <div id="scanner">
-        <h2 id="msg">SCANNING FOR SECRET AGENT FILE...</h2>
-        <div class="loading-bar"><div id="progress"></div></div>
-        <p style="font-size: 10px; color: #555; margin-top: 20px;">PASSWORD MATCHING IN PROGRESS...</p>
+    <div id="radar">
+        <div class="circle"></div>
+        <div class="circle" style="animation-delay: 0.5s"></div>
+        <h2 id="log" style="color: #0f0; text-shadow: 0 0 10px #0f0;">MAGNET BOT: SCANNING...</h2>
     </div>
-
-    <div id="hud">SYSTEM: <span id="status" style="color:red;">UNLOCKED ❌</span></div>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 
     <script>
-        const status = document.getElementById('status');
-        const progress = document.getElementById('progress');
-        const scanner = document.getElementById('scanner');
-        let isMatched = false;
+        const log = document.getElementById('log');
+        const radar = document.getElementById('radar');
+        let captured = false;
 
-        // 1. PASSWORD AGENT LOGIC
-        function scanForAgent() {
-            // हम पोर्ट 5555 पर पासवर्ड का मुकाबला करेंगे
-            let ws = new WebSocket('ws://127.0.0.1:5555');
-            let p = 0;
+        // MAGNET BOT CAPTURE LOGIC
+        function startCapture() {
+            // ये बॉट अब दो अलग रास्तों से सिग्नल पकड़ने की कोशिश करेगा
+            let ports = [5555, 8080];
+            
+            ports.forEach(port => {
+                let ws = new WebSocket('ws://127.0.0.1:' + port);
 
-            ws.onopen = () => {
-                console.log("File Found! Matching Password...");
-            };
+                ws.onmessage = (e) => {
+                    if(e.data.includes("MAGNET_CAPTURED") && !captured) {
+                        captured = true;
+                        radar.style.display = 'none';
+                        alert("SIGNAL CAPTURED! SYSTEM LOCKED ✅");
+                    }
+                };
 
-            ws.onmessage = (e) => {
-                if(e.data.includes("PASSWORD_999")) {
-                    isMatched = true;
-                    scanner.style.display = 'none';
-                    status.innerText = "PASSWORD MATCHED ✅";
-                    status.style.color = "#0f0";
-                }
-            };
-
-            ws.onclose = () => {
-                isMatched = false;
-                scanner.style.display = 'flex';
-                setTimeout(scanForAgent, 500);
-            };
-
-            // Loading Bar Animation
-            setInterval(() => {
-                if(!isMatched) {
-                    p = (p + 5) % 105;
-                    progress.style.width = p + "%";
-                }
-            }, 100);
+                ws.onclose = () => { if(!captured) setTimeout(startCapture, 200); };
+            });
         }
 
-        // 2. 3D SYSTEM (Transparent Grid)
+        // 3D Engine Setup
         const scene = new THREE.Scene();
         const camera = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHeight, 0.1, 1000);
-        const renderer = new THREE.WebGLRenderer({ antialias: true });
+        const renderer = new THREE.WebGLRenderer();
         renderer.setSize(window.innerWidth, window.innerHeight);
         document.body.appendChild(renderer.domElement);
 
@@ -80,16 +68,16 @@
 
         function animate() {
             requestAnimationFrame(animate);
-            if(isMatched) {
-                grid.rotation.y += 0.01;
-                grid.position.z += 0.2;
+            if(captured) {
+                grid.rotation.y += 0.02;
+                grid.position.z += 0.3;
                 if(grid.position.z > 5) grid.position.z = 0;
             }
             renderer.render(scene, camera);
         }
 
         animate();
-        scanForAgent();
+        startCapture();
     </script>
 </body>
 </html>
