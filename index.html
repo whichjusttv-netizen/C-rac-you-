@@ -3,117 +3,103 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>TITAN RACING 5G</title>
+    <title>TITAN UNBREAKABLE</title>
     <style>
-        body { margin: 0; overflow: hidden; background: #000; font-family: monospace; }
-        #status {
-            position: absolute; top: 15px; left: 15px; z-index: 100;
-            padding: 10px; border: 2px solid #0f0; color: #0f0;
-            background: rgba(0,0,0,0.8); font-weight: bold;
+        body { margin: 0; overflow: hidden; background: #000; font-family: 'Courier New', monospace; touch-action: none; }
+        #overlay {
+            position: absolute; width: 100%; height: 100%; background: rgba(0,0,0,0.9);
+            display: flex; flex-direction: column; justify-content: center; align-items: center;
+            color: #0f0; z-index: 9999; text-align: center; border: 5px solid #0f0; box-sizing: border-box;
         }
-        #ui-layer {
-            position: absolute; bottom: 30px; width: 100%;
-            display: flex; justify-content: space-around; z-index: 50;
+        #hud {
+            position: absolute; top: 10px; width: 100%; text-align: center; color: #0f0;
+            font-size: 14px; text-shadow: 0 0 5px #0f0; z-index: 100;
         }
-        .btn {
-            width: 80px; height: 80px; border: 3px solid #0f0;
-            border-radius: 50%; color: #0f0; display: flex;
-            justify-content: center; align-items: center; font-size: 24px;
+        .fire-btn {
+            position: absolute; bottom: 40px; right: 30px; width: 100px; height: 100px;
+            background: rgba(255,0,0,0.6); border: 4px solid #fff; border-radius: 50%;
+            display: flex; justify-content: center; align-items: center; color: #fff;
+            font-weight: bold; font-size: 20px; z-index: 200; box-shadow: 0 0 20px red;
         }
-        .btn:active { background: #0f0; color: #000; }
     </style>
 </head>
 <body>
 
-    <div id="status">BASH SERVER: <span id="stat-text" style="color:red;">SEARCHING...</span></div>
-
-    <div id="ui-layer">
-        <div style="display:grid; grid-template-columns: repeat(3, 80px); gap: 10px;">
-            <div></div><div class="btn" id="up">↑</div><div></div>
-            <div class="btn" id="left">←</div><div></div><div class="btn" id="right">→</div>
-            <div></div><div class="btn" id="down">↓</div><div></div>
-        </div>
-        <div class="btn" style="width:110px; height:110px; border-color:red; color:red;" id="nitro">NITRO</div>
+    <div id="overlay">
+        <h1 style="font-size: 40px; margin-bottom: 10px;">TITAN SYSTEM</h1>
+        <p id="msg">WAITING FOR BASH SIGNAL...</p>
+        <div style="width: 50px; height: 50px; border: 5px solid #0f0; border-top-color: transparent; border-radius: 50%; animation: spin 1s linear infinite;"></div>
     </div>
+
+    <div id="hud">SYSTEM: <span id="sync">OFFLINE ❌</span> | 5G SHIELD: ACTIVE</div>
+    
+    <div class="fire-btn" id="fire">FIRE</div>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 
     <script>
-        const statText = document.getElementById('stat-text');
+        const overlay = document.getElementById('overlay');
+        const syncStatus = document.getElementById('sync');
+        const msg = document.getElementById('msg');
         let socket;
-        let isConnected = false;
+        let lockEngaged = false;
 
-        // 1. BASH SERVER ADAPTER (यह ज़िद्दी Bash सिग्नल पकड़ेगा)
-        function connectToBash() {
+        // 1. STICKY CONNECTION (चुंबक वाला लॉजिक)
+        function forceConnect() {
+            // हम पोर्ट 5555 पर सीधा हमला करेंगे
             socket = new WebSocket('ws://127.0.0.1:5555');
 
             socket.onopen = () => {
-                isConnected = true;
-                statText.innerText = "CONNECTED ✅";
-                statText.style.color = "#0f0";
+                lockEngaged = true;
+                overlay.style.display = 'none';
+                syncStatus.innerText = "LOCKED ✅";
+                syncStatus.style.color = "#0f0";
+                console.log("TITAN MAGNET ENGAGED!");
             };
 
             socket.onmessage = (e) => {
-                // Bash Server से आने वाला कच्चा डेटा यहाँ प्रोसेस होगा
-                console.log("Titan Signal Received");
+                // सर्वर से कोई भी सिग्नल आए, हम उसे 'Energy' की तरह इस्तेमाल करेंगे
+                console.log("Bash Signal Caught!");
             };
 
             socket.onclose = () => {
-                isConnected = false;
-                statText.innerText = "LOST ❌";
-                statText.style.color = "red";
-                setTimeout(connectToBash, 500); // 0.5s में फिर से अटैक
+                if(lockEngaged) {
+                    msg.innerText = "ANDROID ATTACK DETECTED! RE-ARMING...";
+                }
+                // अगर कटा, तो 0.01 सेकंड में वापस जुड़ो!
+                setTimeout(forceConnect, 10); 
             };
         }
 
-        // 2. RACING 3D WORLD
+        // 2. 3D WORLD (Full High-Speed Grid)
         const scene = new THREE.Scene();
-        scene.background = new THREE.Color(0x000000);
         const camera = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHeight, 0.1, 1000);
         const renderer = new THREE.WebGLRenderer({ antialias: true });
         renderer.setSize(window.innerWidth, window.innerHeight);
         document.body.appendChild(renderer.domElement);
 
-        // Neon Racing Track
-        const grid = new THREE.GridHelper(500, 50, 0x00ff00, 0x002200);
+        const grid = new THREE.GridHelper(500, 50, 0x00ff00, 0x004400);
         scene.add(grid);
 
-        // Your Racing Car (Titan Box)
-        const carGeo = new THREE.BoxGeometry(2, 1, 4);
-        const carMat = new THREE.MeshBasicMaterial({ color: 0x00ff00, wireframe: true });
-        const car = new THREE.Mesh(carGeo, carMat);
-        car.position.y = 0.5;
-        scene.add(car);
+        camera.position.set(0, 7, 15);
+        camera.lookAt(0, 0, 0);
 
-        camera.position.set(0, 5, 10);
-        camera.lookAt(car.position);
-
-        // 3. CONTROLS LOGIC
-        let move = { f:0, b:0, l:0, r:0 };
-        const bind = (id, k) => {
-            const el = document.getElementById(id);
-            el.ontouchstart = () => move[k] = 1;
-            el.ontouchend = () => move[k] = 0;
-        };
-        bind('up','f'); bind('down','b'); bind('left','l'); bind('right','r');
-
-        function update() {
-            requestAnimationFrame(update);
-            if(isConnected) {
-                // Car Movement
-                if(move.f) { car.position.z -= 0.8; camera.position.z -= 0.8; }
-                if(move.b) { car.position.z += 0.8; camera.position.z += 0.8; }
-                if(move.l) car.position.x -= 0.5;
-                if(move.r) car.position.x += 0.5;
-                
-                // Camera Follow
-                camera.lookAt(car.position);
+        function animate() {
+            requestAnimationFrame(animate);
+            if(lockEngaged) {
+                grid.position.z += 0.5; // तेज रफ़्तार का अहसास
+                if(grid.position.z > 10) grid.position.z = 0;
             }
             renderer.render(scene, camera);
         }
 
-        update();
-        connectToBash();
+        // Spin Animation for Loader
+        const style = document.createElement('style');
+        style.innerHTML = "@keyframes spin { to { transform: rotate(360deg); } }";
+        document.head.appendChild(style);
+
+        animate();
+        forceConnect();
     </script>
 </body>
 </html>
