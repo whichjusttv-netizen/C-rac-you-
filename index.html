@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Ranjan 3D Mobile Game</title>
+    <style>
+        body { margin: 0; overflow: hidden; background: #000; touch-action: none; }
+        /* Mobile Controls Styling */
+        .controls {
+            position: absolute; bottom: 20px; width: 100%;
+            display: flex; justify-content: space-between; padding: 0 20px;
+            box-sizing: border-box; z-index: 100;
+        }
+        .btn {
+            width: 60px; height: 60px; background: rgba(255,255,255,0.3);
+            border-radius: 50%; display: flex; justify-content: center;
+            align-items: center; color: white; font-weight: bold;
+            user-select: none; -webkit-user-select: none;
+        }
+        #joystick-left { display: grid; grid-template-columns: repeat(3, 1fr); gap: 5px; }
+    </style>
+</head>
+<body>
+
+    <div class="controls">
+        <div id="joystick-left">
+            <div></div><div class="btn" id="up">↑</div><div></div>
+            <div class="btn" id="left">←</div><div></div><div class="btn" id="right">→</div>
+            <div></div><div class="btn" id="down">↓</div><div></div>
+        </div>
+        <div class="btn" style="width:80px; height:80px; background:red;" id="action">FIRE</div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+
+    <script>
+        // 1. Setup Scene
+        const scene = new THREE.Scene();
+        const camera = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHeight, 0.1, 1000);
+        const renderer = new THREE.WebGLRenderer({ antialias: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        document.body.appendChild(renderer.domElement);
+
+        // 2. Add 3D Objects (Floor and Boxes)
+        const grid = new THREE.GridHelper(100, 20, 0xffffff, 0x444444);
+        scene.add(grid);
+
+        const geometry = new THREE.BoxGeometry(2, 2, 2);
+        for(let i=0; i<20; i++) {
+            const material = new THREE.MeshNormalMaterial();
+            const cube = new THREE.Mesh(geometry, material);
+            cube.position.set(Math.random()*40-20, 1, Math.random()*40-20);
+            scene.add(cube);
+        }
+
+        camera.position.set(0, 5, 10);
+        camera.lookAt(0, 0, 0);
+
+        // 3. Mobile Control Logic
+        let move = { f: false, b: false, l: false, r: false };
+
+        const setupBtn = (id, direction) => {
+            const btn = document.getElementById(id);
+            btn.ontouchstart = () => move[direction] = true;
+            btn.ontouchend = () => move[direction] = false;
+        };
+
+        setupBtn('up', 'f'); setupBtn('down', 'b');
+        setupBtn('left', 'l'); setupBtn('right', 'r');
+
+        // 4. Animation Loop
+        function animate() {
+            requestAnimationFrame(animate);
+            
+            if(move.f) camera.position.z -= 0.2;
+            if(move.b) camera.position.z += 0.2;
+            if(move.l) camera.position.x -= 0.2;
+            if(move.r) camera.position.x += 0.2;
+
+            renderer.render(scene, camera);
+        }
+        animate();
+
+        // Resize handler
+        window.onresize = () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        };
+    </script>
+</body>
+</html>
