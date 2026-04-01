@@ -1,127 +1,84 @@
 <!DOCTYPE html>
-<html lang="hi">
+<html>
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>TITAN-ULTRA 3D</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>TITAN-FIX</title>
     <style>
-        /* CSS: No White Screen anymore */
-        body { margin: 0; overflow: hidden; background-color: #010101; touch-action: none; font-family: sans-serif; }
-        #loading-screen {
-            position: absolute; width: 100%; height: 100%; background: #000;
-            display: flex; flex-direction: column; justify-content: center; align-items: center;
-            color: #0f0; z-index: 9999; border: 2px solid #0f0;
-        }
-        .btn-box {
-            position: absolute; bottom: 30px; width: 100%; display: flex;
-            justify-content: space-around; z-index: 100; pointer-events: none;
-        }
-        .control-btn {
-            width: 70px; height: 70px; background: rgba(0,255,0,0.2);
-            border: 2px solid #0f0; border-radius: 15px; color: white;
-            display: flex; justify-content: center; align-items: center;
-            font-size: 30px; pointer-events: auto;
-        }
+        /* सफ़ेद स्क्रीन को रोकने के लिए पक्का इंतज़ाम */
+        body { margin: 0; overflow: hidden; background: #000; color: #0f0; font-family: monospace; }
+        canvas { display: block; background: #000; }
+        #ui { position: absolute; top: 10px; width: 100%; text-align: center; z-index: 10; }
+        .btn { position: absolute; bottom: 40px; right: 30px; width: 80px; height: 80px; background: red; border-radius: 50%; display: flex; justify-content: center; align-items: center; color: white; font-weight: bold; z-index: 20; }
     </style>
 </head>
 <body>
 
-    <div id="loading-screen">
-        <h2 id="msg">TITAN SYSTEM: SEARCHING SERVER...</h2>
-        <p style="font-size: 12px; color: #555;">Bypassing Security Wall...</p>
-    </div>
-
-    <div class="btn-box">
-        <div style="display: grid; grid-template-columns: repeat(3, 75px); gap: 5px;">
-            <div></div><div class="control-btn" id="w">↑</div><div></div>
-            <div class="control-btn" id="a">←</div><div class="control-btn" id="s">↓</div><div class="control-btn" id="d">→</div>
+    <div id="ui">
+        <div id="st" style="border: 2px solid #0f0; display: inline-block; padding: 5px 15px;">
+            SYSTEM: ONLINE | SERVER: <span id="srv">OFFLINE ❌</span>
         </div>
-        <div class="control-btn" id="fire" style="background:red; width:90px; height:90px;">FIRE</div>
     </div>
 
-    <script src="https://unpkg.com/three@0.128.0/build/three.min.js"></script>
+    <div class="btn" id="f">FIRE</div>
+
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js"></script>
 
     <script>
-        const loading = document.getElementById('loading-screen');
-        const msg = document.getElementById('msg');
+        const srv = document.getElementById('srv');
         let socket;
-        let isLinked = false;
 
-        // 1. CONNECTION BYPASS (Security Wall thodne ke liye)
-        function startTitanLink() {
-            // Hum is baar IP ke sath 'localhost' dono try karenge
+        // 1. कनेक्शन का नया रास्ता (Bypass Logic)
+        function connect() {
+            // हम 'localhost' की जगह मोबाइल का इंटरनल IP इस्तेमाल करेंगे
             socket = new WebSocket('ws://127.0.0.1:5555');
 
             socket.onopen = () => {
-                socket.send("PING_FROM_GAME"); 
+                srv.innerText = "CONNECTED ✅";
+                srv.style.color = "#0f0";
             };
 
             socket.onmessage = (e) => {
-                if(e.data.includes("SYSTEM_CONNECTED_COMPLETE")) {
-                    isLinked = true;
-                    loading.style.display = 'none'; // Lock khul gaya
-                    console.log("Security Bypassed!");
+                if(e.data.includes("CONNECTED")) {
+                    srv.innerText = "CONNECTED ✅";
                 }
             };
 
-            socket.onerror = () => {
-                msg.innerText = "SERVER OFFLINE: START TERMUX!";
-                msg.style.color = "red";
-            };
-
             socket.onclose = () => {
-                isLinked = false;
-                loading.style.display = 'flex';
-                setTimeout(startTitanLink, 2000); 
+                srv.innerText = "OFFLINE ❌";
+                setTimeout(connect, 2000); // 2 सेकंड में खुद जुड़ेगा
             };
         }
 
-        // 2. 3D ENGINE (No more white screen)
+        // 2. 3D WORLD (Safe Mode)
         const scene = new THREE.Scene();
-        scene.background = new THREE.Color(0x000500); 
+        scene.background = new THREE.Color(0x000000); // काला ताकि सफ़ेद न दिखे
         const camera = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHeight, 0.1, 1000);
         const renderer = new THREE.WebGLRenderer({ antialias: true });
         renderer.setSize(window.innerWidth, window.innerHeight);
         document.body.appendChild(renderer.domElement);
 
-        // Lights & Floor
-        scene.add(new THREE.AmbientLight(0x00ff00, 0.5));
-        const grid = new THREE.GridHelper(200, 40, 0x00ff00, 0x002200);
+        // Ground Grid (हरा जाल)
+        const grid = new THREE.GridHelper(100, 20, 0x00ff00, 0x004400);
         scene.add(grid);
 
-        // Enemy Bots (AI Players)
-        const geo = new THREE.BoxGeometry(2, 2, 2);
-        for(let i=0; i<30; i++) {
-            const mat = new THREE.MeshBasicMaterial({ color: 0x00ff00, wireframe: true });
-            const bot = new THREE.Mesh(geo, mat);
-            bot.position.set(Math.random()*100-50, 1, Math.random()*100-50);
-            scene.add(bot);
-        }
+        // 3D Objects
+        const geometry = new THREE.BoxGeometry(2, 2, 2);
+        const material = new THREE.MeshBasicMaterial({ color: 0x00ff00, wireframe: true });
+        const cube = new THREE.Mesh(geometry, material);
+        cube.position.y = 1;
+        scene.add(cube);
 
         camera.position.set(0, 5, 10);
+        camera.lookAt(0, 0, 0);
 
-        // 3. CONTROLS
-        let keys = { w:0, s:0, a:0, d:0 };
-        const setup = (id) => {
-            const el = document.getElementById(id);
-            el.ontouchstart = () => keys[id] = 1;
-            el.ontouchend = () => keys[id] = 0;
-        };
-        ['w','s','a','d'].forEach(setup);
-
-        function render() {
-            requestAnimationFrame(render);
-            if(isLinked) {
-                if(keys.w) camera.position.z -= 0.6;
-                if(keys.s) camera.position.z += 0.6;
-                if(keys.a) camera.position.x -= 0.6;
-                if(keys.d) camera.position.x += 0.6;
-            }
+        function animate() {
+            requestAnimationFrame(animate);
+            cube.rotation.y += 0.01;
             renderer.render(scene, camera);
         }
 
-        render();
-        startTitanLink();
+        animate();
+        connect();
     </script>
 </body>
 </html>
