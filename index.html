@@ -3,115 +3,117 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>TITAN ABSOLUTE 5G</title>
+    <title>TITAN RACING 5G</title>
     <style>
-        body { margin: 0; overflow: hidden; background: #000; color: #0f0; font-family: monospace; touch-action: none; }
-        #terminal {
-            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-            background: #000; z-index: 9999; display: flex; flex-direction: column;
-            justify-content: center; align-items: center; text-align: center;
+        body { margin: 0; overflow: hidden; background: #000; font-family: monospace; }
+        #status {
+            position: absolute; top: 15px; left: 15px; z-index: 100;
+            padding: 10px; border: 2px solid #0f0; color: #0f0;
+            background: rgba(0,0,0,0.8); font-weight: bold;
         }
-        #hud {
-            position: absolute; top: 10px; left: 10px; z-index: 100;
-            background: rgba(0,255,0,0.1); border: 1px solid #0f0; padding: 10px;
+        #ui-layer {
+            position: absolute; bottom: 30px; width: 100%;
+            display: flex; justify-content: space-around; z-index: 50;
         }
-        .controls { position: absolute; bottom: 20px; width: 100%; display: flex; justify-content: space-around; z-index: 500; }
-        .btn { width: 70px; height: 70px; border: 2px solid #0f0; border-radius: 50%; display: flex; justify-content: center; align-items: center; font-weight: bold; }
+        .btn {
+            width: 80px; height: 80px; border: 3px solid #0f0;
+            border-radius: 50%; color: #0f0; display: flex;
+            justify-content: center; align-items: center; font-size: 24px;
+        }
+        .btn:active { background: #0f0; color: #000; }
     </style>
 </head>
 <body>
 
-    <div id="terminal">
-        <h1 style="color: #0f0; text-shadow: 0 0 10px #0f0;">TITAN CORE 5.0</h1>
-        <p id="msg" style="color: #0f0;">ESTABLISHING ENCRYPTED LINK...</p>
-        <button onclick="startManual()" style="background:#0f0; color:#000; padding:10px; border:none; font-weight:bold; border-radius:5px;">FORCE START</button>
-    </div>
+    <div id="status">BASH SERVER: <span id="stat-text" style="color:red;">SEARCHING...</span></div>
 
-    <div id="hud">LINK: <span id="l-stat" style="color:red;">DISCONNECTED</span></div>
-
-    <div class="controls">
-        <div style="display:grid; grid-template-columns: repeat(3, 70px); gap:10px;">
-            <div></div><div class="btn" id="u">↑</div><div></div>
-            <div class="btn" id="l">←</div><div class="btn" id="d">↓</div><div class="btn" id="r">→</div>
+    <div id="ui-layer">
+        <div style="display:grid; grid-template-columns: repeat(3, 80px); gap: 10px;">
+            <div></div><div class="btn" id="up">↑</div><div></div>
+            <div class="btn" id="left">←</div><div></div><div class="btn" id="right">→</div>
+            <div></div><div class="btn" id="down">↓</div><div></div>
         </div>
-        <div class="btn" id="f" style="border-color:red; color:red; width:90px; height:90px;">FIRE</div>
+        <div class="btn" style="width:110px; height:110px; border-color:red; color:red;" id="nitro">NITRO</div>
     </div>
 
-    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 
     <script>
-        const terminal = document.getElementById('terminal');
-        const lStat = document.getElementById('l-stat');
-        const msg = document.getElementById('msg');
+        const statText = document.getElementById('stat-text');
         let socket;
-        let isReady = false;
+        let isConnected = false;
 
-        // 1. ABSOLUTE CONNECTION (जबरदस्ती कनेक्शन)
-        function startManual() {
-            msg.innerText = "BYPASSING ANDROID FIREWALL...";
-            connect();
-        }
-
-        function connect() {
-            // Localhost bypass strategy
-            socket = new WebSocket('ws://localhost:5555');
+        // 1. BASH SERVER ADAPTER (यह ज़िद्दी Bash सिग्नल पकड़ेगा)
+        function connectToBash() {
+            socket = new WebSocket('ws://127.0.0.1:5555');
 
             socket.onopen = () => {
-                isReady = true;
-                terminal.style.display = 'none'; // सफ़ेद स्क्रीन और बैरियर खत्म
-                lStat.innerText = "CONNECTED ✅";
-                lStat.style.color = "#0f0";
-                console.log("TITAN SYSTEM STABILIZED.");
+                isConnected = true;
+                statText.innerText = "CONNECTED ✅";
+                statText.style.color = "#0f0";
             };
 
             socket.onmessage = (e) => {
-                if(e.data.includes("CONNECTED")) console.log("Pulse OK");
+                // Bash Server से आने वाला कच्चा डेटा यहाँ प्रोसेस होगा
+                console.log("Titan Signal Received");
             };
 
             socket.onclose = () => {
-                isReady = false;
-                terminal.style.display = 'flex';
-                msg.innerText = "CONNECTION LOST. RE-ARMING...";
-                setTimeout(connect, 1000); // 1 सेकंड में फिर हमला (जुड़ाव)
+                isConnected = false;
+                statText.innerText = "LOST ❌";
+                statText.style.color = "red";
+                setTimeout(connectToBash, 500); // 0.5s में फिर से अटैक
             };
         }
 
-        // 2. STABLE 3D ENGINE
+        // 2. RACING 3D WORLD
         const scene = new THREE.Scene();
         scene.background = new THREE.Color(0x000000);
-        const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+        const camera = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHeight, 0.1, 1000);
         const renderer = new THREE.WebGLRenderer({ antialias: true });
         renderer.setSize(window.innerWidth, window.innerHeight);
         document.body.appendChild(renderer.domElement);
 
-        const grid = new THREE.GridHelper(200, 40, 0x00ff00, 0x002200);
+        // Neon Racing Track
+        const grid = new THREE.GridHelper(500, 50, 0x00ff00, 0x002200);
         scene.add(grid);
 
+        // Your Racing Car (Titan Box)
+        const carGeo = new THREE.BoxGeometry(2, 1, 4);
+        const carMat = new THREE.MeshBasicMaterial({ color: 0x00ff00, wireframe: true });
+        const car = new THREE.Mesh(carGeo, carMat);
+        car.position.y = 0.5;
+        scene.add(car);
+
         camera.position.set(0, 5, 10);
-        camera.lookAt(0, 0, 0);
+        camera.lookAt(car.position);
 
-        // 3. CONTROLS
-        let move = { u:0, d:0, l:0, r:0 };
-        const b = (id, k) => {
-            const e = document.getElementById(id);
-            e.ontouchstart = () => move[k] = 1;
-            e.ontouchend = () => move[k] = 0;
+        // 3. CONTROLS LOGIC
+        let move = { f:0, b:0, l:0, r:0 };
+        const bind = (id, k) => {
+            const el = document.getElementById(id);
+            el.ontouchstart = () => move[k] = 1;
+            el.ontouchend = () => move[k] = 0;
         };
-        b('u','u'); b('d','d'); b('l','l'); b('r','r');
+        bind('up','f'); bind('down','b'); bind('left','l'); bind('right','r');
 
-        function loop() {
-            requestAnimationFrame(loop);
-            if(isReady) {
-                if(move.u) camera.position.z -= 0.5;
-                if(move.d) camera.position.z += 0.5;
-                if(move.l) camera.position.x -= 0.5;
-                if(move.r) camera.position.x += 0.5;
+        function update() {
+            requestAnimationFrame(update);
+            if(isConnected) {
+                // Car Movement
+                if(move.f) { car.position.z -= 0.8; camera.position.z -= 0.8; }
+                if(move.b) { car.position.z += 0.8; camera.position.z += 0.8; }
+                if(move.l) car.position.x -= 0.5;
+                if(move.r) car.position.x += 0.5;
+                
+                // Camera Follow
+                camera.lookAt(car.position);
             }
             renderer.render(scene, camera);
         }
 
-        loop();
-        connect();
+        update();
+        connectToBash();
     </script>
 </body>
 </html>
